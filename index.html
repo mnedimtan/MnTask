@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ekip Görev Yöneticisi</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f5f0;
+    --surface: #ffffff;
+    --border: rgba(0,0,0,0.1);
+    --border-strong: rgba(0,0,0,0.2);
+    --text: #1a1a1a;
+    --text-muted: #666;
+    --text-hint: #999;
+    --blue: #2563eb;
+    --blue-light: #eff6ff;
+    --blue-border: #bfdbfe;
+    --green: #16a34a;
+    --green-light: #f0fdf4;
+    --green-border: #bbf7d0;
+    --amber: #d97706;
+    --amber-light: #fffbeb;
+    --amber-border: #fde68a;
+    --red: #dc2626;
+    --red-light: #fef2f2;
+    --red-border: #fecaca;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111;
+      --surface: #1c1c1c;
+      --border: rgba(255,255,255,0.1);
+      --border-strong: rgba(255,255,255,0.2);
+      --text: #f0f0f0;
+      --text-muted: #aaa;
+      --text-hint: #666;
+      --blue-light: #1e3a5f;
+      --blue-border: #1e40af;
+      --green-light: #14532d;
+      --green-border: #166534;
+      --amber-light: #451a03;
+      --amber-border: #92400e;
+      --red-light: #450a0a;
+      --red-border: #991b1b;
+    }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; }
+
+  /* Login */
+  #login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1rem; }
+  #login-box { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; width: 100%; max-width: 360px; }
+  #login-box h1 { font-size: 20px; font-weight: 500; margin-bottom: 0.35rem; }
+  #login-box .subtitle { font-size: 14px; color: var(--text-muted); margin-bottom: 1.75rem; }
+  .login-error { font-size: 13px; color: var(--red); margin-top: 8px; min-height: 18px; }
+
+  /* Forms */
+  .form-row { margin-bottom: 12px; }
+  label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 5px; }
+  input[type="text"], input[type="password"], textarea {
+    width: 100%; padding: 9px 12px; border-radius: var(--radius);
+    border: 0.5px solid var(--border-strong); background: var(--bg);
+    color: var(--text); font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.15s;
+  }
+  input:focus, textarea:focus { border-color: var(--blue); }
+  textarea { resize: vertical; min-height: 80px; }
+  .form-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius); border: 0.5px solid var(--border-strong); background: var(--surface); color: var(--text); font-size: 14px; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+  .btn:hover { background: var(--bg); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
+  .btn-full { width: 100%; justify-content: center; }
+  .btn-sm { padding: 5px 10px; font-size: 13px; }
+  .btn-danger { border-color: var(--red); color: var(--red); }
+  .btn-danger:hover { background: var(--red-light); }
+  .btn-success { border-color: var(--green); color: var(--green); }
+  .btn-success:hover { background: var(--green-light); }
+
+  /* App layout */
+  #app { display: none; }
+  header { background: var(--surface); border-bottom: 0.5px solid var(--border); padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  header h1 { font-size: 17px; font-weight: 500; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  main { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
+
+  /* Badges / Avatar */
+  .avatar { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 500; flex-shrink: 0; }
+  .avatar-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+  .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+  .badge-open { background: var(--blue-light); color: var(--blue); border: 0.5px solid var(--blue-border); }
+  .badge-assigned { background: var(--amber-light); color: var(--amber); border: 0.5px solid var(--amber-border); }
+  .badge-completed { background: var(--green-light); color: var(--green); border: 0.5px solid var(--green-border); }
+  .badge-admin { font-size: 11px; background: var(--blue-light); color: var(--blue); border: 0.5px solid var(--blue-border); padding: 2px 7px; border-radius: 999px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 4px; width: fit-content; }
+  .tab { padding: 7px 16px; border-radius: var(--radius); cursor: pointer; font-size: 14px; color: var(--text-muted); border: none; background: transparent; transition: all 0.15s; }
+  .tab.active { background: var(--blue); color: #fff; }
+
+  /* Stats */
+  .stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 1.25rem; }
+  .stat-card { border-radius: var(--radius-lg); padding: 1rem; text-align: center; }
+  .stat-num { font-size: 28px; font-weight: 500; }
+  .stat-label { font-size: 13px; }
+
+  /* Top bar */
+  .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 10px; }
+
+  /* Panel */
+  .panel { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1.25rem; }
+  .panel h2 { font-size: 16px; font-weight: 500; margin-bottom: 1rem; }
+
+  /* User list */
+  .user-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1rem; }
+  .user-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border: 0.5px solid var(--border); border-radius: var(--radius); }
+  .user-info { display: flex; align-items: center; gap: 10px; font-size: 14px; flex-wrap: wrap; }
+  .add-user-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; }
+
+  /* Tasks */
+  .tasks-list { display: flex; flex-direction: column; gap: 10px; }
+  .task-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; }
+  .task-card.open { border-left: 3px solid var(--blue); }
+  .task-card.assigned { border-left: 3px solid var(--amber); }
+  .task-card.completed { border-left: 3px solid var(--green); opacity: 0.78; }
+  .task-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .task-subject { font-size: 15px; font-weight: 500; flex: 1; }
+  .task-meta { font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .task-desc { font-size: 14px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.6; white-space: pre-wrap; }
+  .task-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  /* Overlay */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 2000; display: none; align-items: center; justify-content: center; }
+  .overlay.active { display: flex; }
+  .overlay-box { background: var(--surface); border-radius: var(--radius-lg); padding: 1.5rem; width: 320px; }
+  .overlay-box p { margin-bottom: 1.25rem; font-size: 15px; }
+
+  /* Empty */
+  .empty { text-align: center; padding: 3rem 1rem; color: var(--text-hint); }
+  .empty-icon { font-size: 40px; margin-bottom: 0.75rem; }
+  .empty p { font-size: 14px; }
+
+  /* Toast */
+  #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: #1a1a1a; color: #fff; padding: 10px 18px; border-radius: var(--radius); font-size: 14px; z-index: 9999; opacity: 0; transform: translateY(8px); transition: all 0.2s; pointer-events: none; }
+  #toast.show { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 600px) {
+    main { padding: 1rem; }
+    .tabs { width: 100%; }
+    .tab { flex: 1; text-align: center; font-size: 13px; padding: 7px 8px; }
+    .add-user-grid { grid-template-columns: 1fr 1fr; }
+    .add-user-grid .btn { grid-column: span 2; width: 100%; justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div id="login-box">
+    <h1>📋 Görev Yöneticisi</h1>
+    <p class="subtitle">Devam etmek için giriş yapın.</p>
+    <div class="form-row">
+      <label>Kullanıcı Adı</label>
+      <input type="text" id="login-username" placeholder="kullanici_adi" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="form-row">
+      <label>Şifre</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <br>
+    <button class="btn btn-primary btn-full" id="login-btn" onclick="doLogin()">Giriş Yap</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <h1>📋 Ekip Görev Yöneticisi</h1>
+    <div class="header-right">
+      <span id="header-user" style="display:flex;align-items:center;gap:8px;font-size:14px"></span>
+      <button class="btn btn-sm" onclick="doLogout()">Çıkış</button>
+    </div>
+  </header>
+  <main>
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card" style="background:var(--blue-light);border:0.5px solid var(--blue-border)">
+        <div class="stat-num" style="color:var(--blue)" id="stat-open">0</div>
+        <div class="stat-label" style="color:var(--blue)">Açık</div>
+      </div>
+      <div class="stat-card" style="background:var(--amber-light);border:0.5px solid var(--amber-border)">
+        <div class="stat-num" style="color:var(--amber)" id="stat-assigned">0</div>
+        <div class="stat-label" style="color:var(--amber)">Üstlenildi</div>
+      </div>
+      <div class="stat-card" style="background:var(--green-light);border:0.5px solid var(--green-border)">
+        <div class="stat-num" style="color:var(--green)" id="stat-done">0</div>
+        <div class="stat-label" style="color:var(--green)">Tamamlandı</div>
+      </div>
+    </div>
+
+    <!-- Top bar -->
+    <div class="top-bar">
+      <div class="tabs">
+        <button class="tab active" data-filter="all"       onclick="setFilter('all')">Tümü</button>
+        <button class="tab"        data-filter="open"      onclick="setFilter('open')">Açık</button>
+        <button class="tab"        data-filter="mine"      onclick="setFilter('mine')">Benimkiler</button>
+        <button class="tab"        data-filter="completed" onclick="setFilter('completed')">Tamamlanan</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" id="users-btn" style="display:none" onclick="togglePanel('users-panel')">👥 Kullanıcılar</button>
+        <button class="btn btn-sm btn-primary" onclick="togglePanel('create-panel')">+ Görev Ekle</button>
+      </div>
+    </div>
+
+    <!-- Users panel (admin only) -->
+    <div class="panel" id="users-panel" style="display:none">
+      <h2>👥 Kullanıcı Yönetimi</h2>
+      <div class="user-list" id="user-list"></div>
+      <div class="add-user-grid">
+        <div>
+          <label>Kullanıcı Adı</label>
+          <input type="text" id="new-username" placeholder="ornek_ad" onkeydown="if(event.key==='Enter')addUser()">
+        </div>
+        <div>
+          <label>Şifre</label>
+          <input type="password" id="new-password" placeholder="min. 4 karakter" onkeydown="if(event.key==='Enter')addUser()">
+        </div>
+        <button class="btn btn-primary" onclick="addUser()">Ekle</button>
+      </div>
+      <p style="font-size:12px;color:var(--text-hint);margin-top:8px">İlk oluşturulan kullanıcı otomatik admin olur. Boşluk yerine alt çizgi kullanın.</p>
+    </div>
+
+    <!-- Create task panel -->
+    <div class="panel" id="create-panel" style="display:none">
+      <h2>📨 Maile Göre Görev Oluştur</h2>
+      <div class="form-row">
+        <label>Mail Konusu *</label>
+        <input type="text" id="task-subject" placeholder="Örn: Sunucu erişim sorunu">
+      </div>
+      <div class="form-row">
+        <label>Gönderen</label>
+        <input type="text" id="task-from" placeholder="Örn: ali@sirket.com">
+      </div>
+      <div class="form-row">
+        <label>Açıklama / Notlar</label>
+        <textarea id="task-desc" placeholder="Mailden kopyalayın veya kısa not ekleyin…"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn" onclick="togglePanel('create-panel')">İptal</button>
+        <button class="btn btn-primary" onclick="createTask()">Oluştur</button>
+      </div>
+    </div>
+
+    <!-- Task list -->
+    <div class="tasks-list" id="task-list">
+      <div class="empty"><div class="empty-icon">📭</div><p>Henüz görev yok.</p></div>
+    </div>
+  </main>
+</div>
+
+<!-- Confirm -->
+<div class="overlay" id="confirm-overlay">
+  <div class="overlay-box">
+    <p id="confirm-msg"></p>
+    <div class="form-actions">
+      <button class="btn" onclick="confirmNo()">İptal</button>
+      <button class="btn btn-primary" onclick="confirmYes()">Evet</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import {
+  getFirestore, collection, doc, addDoc, updateDoc, deleteDoc,
+  onSnapshot, query, orderBy, serverTimestamp, getDocs
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAG2Y5t2rxk1MNrMpApZpRb4LQ08DDb4N8",
+  authDomain: "mntaskmgr.firebaseapp.com",
+  projectId: "mntaskmgr",
+  storageBucket: "mntaskmgr.firebasestorage.app",
+  messagingSenderId: "811280149413",
+  appId: "1:811280149413:web:9a614cc66d1677a3aa164c"
+};
+
+const db = getFirestore(initializeApp(firebaseConfig));
+
+// ── State ──
+let currentUser = null;
+let allUsers    = [];
+let allTasks    = [];
+let currentFilter = 'all';
+let unsubUsers = null, unsubTasks = null;
+
+const COLORS = ['#2563eb','#16a34a','#d97706','#9333ea','#0891b2','#dc2626','#0f766e'];
+const getColor = name => { let h=0; for(let c of name) h=(h*31+c.charCodeAt(0))&0xffffffff; return COLORS[Math.abs(h)%COLORS.length]; };
+const initials = name => name.trim().slice(0,2).toUpperCase();
+const ftime = ts => { if(!ts) return ''; const d=ts.toDate?ts.toDate():new Date(ts); return d.toLocaleDateString('tr-TR',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}); };
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// ── LOGIN ──
+window.doLogin = async function() {
+  const username = document.getElementById('login-username').value.trim().toLowerCase();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  const btn      = document.getElementById('login-btn');
+  errEl.textContent = '';
+  if (!username || !password) { errEl.textContent = 'Kullanıcı adı ve şifre gereklidir.'; return; }
+  btn.disabled = true; btn.textContent = 'Kontrol ediliyor…';
+
+  try {
+    const snap  = await getDocs(collection(db, 'users'));
+    const users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    if (users.length === 0) {
+      // No users → go straight to admin setup
+      currentUser = { id: '__setup__', username: '__setup__', displayName: 'Kurulum Modu', isAdmin: true };
+      showApp();
+      document.getElementById('users-btn').style.display = 'flex';
+      togglePanel('users-panel');
+      toast('Önce bir kullanıcı oluşturun');
+      btn.disabled = false; btn.textContent = 'Giriş Yap';
+      return;
+    }
+
+    const hash    = await sha256(password);
+    const matched = users.find(u => u.username === username && u.passwordHash === hash);
+    if (!matched) { errEl.textContent = 'Kullanıcı adı veya şifre hatalı.'; btn.disabled=false; btn.textContent='Giriş Yap'; return; }
+
+    currentUser = { id: matched.id, username: matched.username, displayName: matched.displayName||matched.username, isAdmin: !!matched.isAdmin };
+    sessionStorage.setItem('tapp_session', JSON.stringify(currentUser));
+    btn.disabled=false; btn.textContent='Giriş Yap';
+    showApp();
+  } catch(e) {
+    errEl.textContent = 'Bağlantı hatası: ' + e.message;
+    btn.disabled=false; btn.textContent='Giriş Yap';
+  }
+};
+
+window.doLogout = function() {
+  sessionStorage.removeItem('tapp_session');
+  currentUser = null;
+  if (unsubUsers) unsubUsers();
+  if (unsubTasks) unsubTasks();
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-error').textContent = '';
+};
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  const c = getColor(currentUser.username);
+  document.getElementById('header-user').innerHTML = `
+    <span class="avatar" style="background:${c};color:#fff;width:28px;height:28px;font-size:11px">${initials(currentUser.username)}</span>
+    <span>${esc(currentUser.displayName)}</span>
+    ${currentUser.isAdmin ? '<span class="badge-admin">admin</span>' : ''}`;
+  if (currentUser.isAdmin) document.getElementById('users-btn').style.display = 'flex';
+  startListeners();
+}
+
+// ── LISTENERS ──
+function startListeners() {
+  if (unsubUsers) unsubUsers();
+  if (unsubTasks) unsubTasks();
+  unsubUsers = onSnapshot(collection(db,'users'), snap => {
+    allUsers = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderUserList();
+  });
+  unsubTasks = onSnapshot(query(collection(db,'tasks'), orderBy('createdAt','desc')), snap => {
+    allTasks = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderTasks();
+    renderStats();
+  });
+}
+
+// ── USER MANAGEMENT ──
+window.addUser = async function() {
+  const username = document.getElementById('new-username').value.trim().toLowerCase().replace(/\s+/g,'_');
+  const password = document.getElementById('new-password').value;
+  if (!username || !password) { toast('Kullanıcı adı ve şifre gerekli'); return; }
+  if (password.length < 4)    { toast('Şifre en az 4 karakter olmalı'); return; }
+  if (allUsers.find(u=>u.username===username)) { toast('Bu kullanıcı adı zaten kullanımda'); return; }
+
+  const hash    = await sha256(password);
+  const isFirst = allUsers.length === 0;
+  await addDoc(collection(db,'users'), { username, displayName: username, passwordHash: hash, isAdmin: isFirst, createdAt: serverTimestamp() });
+  document.getElementById('new-username').value = '';
+  document.getElementById('new-password').value  = '';
+  toast(isFirst ? `"${username}" admin olarak oluşturuldu` : `"${username}" oluşturuldu`);
+
+  if (currentUser?.id === '__setup__' && isFirst) {
+    setTimeout(() => { toast('Şimdi giriş yapabilirsiniz'); doLogout(); }, 1400);
+  }
+};
+
+window.removeUser = function(id, name) {
+  if (id === currentUser?.id) { toast('Kendinizi silemezsiniz'); return; }
+  confirm2(`"${name}" kullanıcısını silmek istiyor musunuz?`, async () => {
+    await deleteDoc(doc(db,'users',id));
+    toast('Kullanıcı silindi');
+  });
+};
+
+function renderUserList() {
+  const el = document.getElementById('user-list');
+  if (!el) return;
+  if (allUsers.length === 0) { el.innerHTML = '<p style="font-size:13px;color:var(--text-muted)">Henüz kullanıcı yok.</p>'; return; }
+  el.innerHTML = allUsers.map(u => `
+    <div class="user-item">
+      <div class="user-info">
+        <span class="avatar" style="background:${getColor(u.username)};color:#fff;width:30px;height:30px;font-size:12px">${initials(u.username)}</span>
+        <span style="font-weight:500">${esc(u.displayName||u.username)}</span>
+        <code style="font-size:12px;color:var(--text-muted)">@${esc(u.username)}</code>
+        ${u.isAdmin ? '<span class="badge-admin">admin</span>' : ''}
+      </div>
+      ${currentUser?.isAdmin && u.id !== currentUser?.id
+        ? `<button class="btn btn-sm btn-danger" onclick="removeUser('${u.id}','${esc(u.username)}')">Sil</button>`
+        : ''}
+    </div>`).join('');
+}
+
+// ── TASKS ──
+window.createTask = async function() {
+  const subject = document.getElementById('task-subject').value.trim();
+  const from    = document.getElementById('task-from').value.trim();
+  const desc    = document.getElementById('task-desc').value.trim();
+  if (!subject) { toast('Mail konusu zorunludur'); return; }
+  await addDoc(collection(db,'tasks'), {
+    subject, from, desc, status: 'open',
+    assignedTo: null, assignedToUsername: null, assignedAt: null,
+    completedBy: null, completedByUsername: null, completedAt: null,
+    createdBy: currentUser.displayName, createdByUsername: currentUser.username,
+    createdAt: serverTimestamp()
+  });
+  document.getElementById('task-subject').value = '';
+  document.getElementById('task-from').value    = '';
+  document.getElementById('task-desc').value    = '';
+  togglePanel('create-panel');
+  toast('Görev oluşturuldu');
+};
+
+window.claimTask = async function(id) {
+  await updateDoc(doc(db,'tasks',id), {
+    status: 'assigned',
+    assignedTo: currentUser.displayName, assignedToUsername: currentUser.username,
+    assignedAt: serverTimestamp()
+  });
+  toast('Görev üzerinize alındı');
+};
+
+window.unclaimTask = function(id) {
+  confirm2('Görevi bırakmak istiyor musunuz?', async () => {
+    await updateDoc(doc(db,'tasks',id), { status:'open', assignedTo:null, assignedToUsername:null, assignedAt:null });
+    toast('Görev serbest bırakıldı');
+  });
+};
+
+window.completeTask = function(id) {
+  confirm2('Görevi tamamlandı olarak işaretlemek istiyor musunuz?', async () => {
+    await updateDoc(doc(db,'tasks',id), {
+      status: 'completed',
+      assignedTo: currentUser.displayName, assignedToUsername: currentUser.username,
+      completedBy: currentUser.displayName, completedByUsername: currentUser.username,
+      completedAt: serverTimestamp()
+    });
+    toast('Görev tamamlandı!');
+  });
+};
+
+window.reopenTask = function(id) {
+  if (!currentUser?.isAdmin) { toast('Sadece admin yeniden açabilir'); return; }
+  confirm2('Görevi yeniden açmak istiyor musunuz?', async () => {
+    await updateDoc(doc(db,'tasks',id), { status:'open', assignedTo:null, assignedToUsername:null, assignedAt:null, completedBy:null, completedByUsername:null, completedAt:null });
+    toast('Görev yeniden açıldı');
+  });
+};
+
+window.deleteTask = function(id, subject) {
+  if (!currentUser?.isAdmin) { toast('Sadece admin silebilir'); return; }
+  confirm2(`"${subject}" görevini silmek istiyor musunuz?`, async () => {
+    await deleteDoc(doc(db,'tasks',id));
+    toast('Görev silindi');
+  });
+};
+
+function renderTasks() {
+  const el = document.getElementById('task-list');
+  let tasks = allTasks;
+  if (currentFilter === 'open')      tasks = tasks.filter(t => t.status === 'open');
+  else if (currentFilter === 'mine') tasks = tasks.filter(t => t.assignedToUsername === currentUser?.username && t.status !== 'completed');
+  else if (currentFilter === 'completed') tasks = tasks.filter(t => t.status === 'completed');
+
+  if (tasks.length === 0) { el.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><p>Bu filtrede görev yok.</p></div>`; return; }
+
+  el.innerHTML = tasks.map(t => {
+    const isMe    = t.assignedToUsername === currentUser?.username;
+    const isAdmin = currentUser?.isAdmin;
+
+    const statusBadge = t.status === 'open'
+      ? `<span class="badge badge-open">Açık</span>`
+      : t.status === 'assigned'
+        ? `<span class="badge badge-assigned">Üstlenildi</span>`
+        : `<span class="badge badge-completed">Tamamlandı</span>`;
+
+    let assigneeHtml = '';
+    if (t.assignedTo) {
+      const c = getColor(t.assignedToUsername||t.assignedTo);
+      assigneeHtml = `<span class="avatar-pill">
+        <span class="avatar" style="background:${c};color:#fff;width:22px;height:22px;font-size:10px">${initials(t.assignedToUsername||t.assignedTo)}</span>
+        ${esc(t.assignedTo)} ${t.status==='completed'?'tamamladı':'üstlendi'}
+      </span>`;
+    }
+
+    let actions = '';
+    if (t.status === 'open') {
+      actions = `<button class="btn btn-sm" onclick="claimTask('${t.id}')">🙋 Üstlen</button>`;
+    } else if (t.status === 'assigned') {
+      if (isMe) actions = `<button class="btn btn-sm btn-success" onclick="completeTask('${t.id}')">✓ Tamamladım</button><button class="btn btn-sm" onclick="unclaimTask('${t.id}')">Bırak</button>`;
+      else       actions = `<span style="font-size:13px;color:var(--text-hint)">Başkası üstlendi</span>`;
+    } else if (t.status === 'completed') {
+      if (isAdmin) actions = `<button class="btn btn-sm" onclick="reopenTask('${t.id}')">Yeniden Aç</button>`;
+    }
+    if (isAdmin) actions += ` <button class="btn btn-sm btn-danger" onclick="deleteTask('${t.id}','${esc(t.subject).replace(/'/g,"\\'")}')">Sil</button>`;
+
+    return `<div class="task-card ${t.status}">
+      <div class="task-header">
+        <div class="task-subject">${esc(t.subject)}</div>
+        ${statusBadge}
+      </div>
+      <div class="task-meta">
+        ${t.from ? `<span>📨 ${esc(t.from)}</span>` : ''}
+        <span>📅 ${ftime(t.createdAt)}</span>
+        ${t.createdBy ? `<span>Ekleyen: ${esc(t.createdBy)}</span>` : ''}
+        ${assigneeHtml}
+        ${t.completedAt ? `<span>⏱ ${ftime(t.completedAt)}</span>` : ''}
+      </div>
+      ${t.desc ? `<div class="task-desc">${esc(t.desc)}</div>` : ''}
+      <div class="task-actions">${actions}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderStats() {
+  document.getElementById('stat-open').textContent     = allTasks.filter(t=>t.status==='open').length;
+  document.getElementById('stat-assigned').textContent  = allTasks.filter(t=>t.status==='assigned').length;
+  document.getElementById('stat-done').textContent      = allTasks.filter(t=>t.status==='completed').length;
+}
+
+// ── UI HELPERS ──
+window.setFilter = function(f) {
+  currentFilter = f;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.filter===f));
+  renderTasks();
+};
+
+window.togglePanel = function(id) {
+  const el = document.getElementById(id);
+  el.style.display = el.style.display === 'none' || !el.style.display ? 'block' : 'none';
+};
+
+let confirmCb = null;
+function confirm2(msg, cb) {
+  document.getElementById('confirm-msg').textContent = msg;
+  document.getElementById('confirm-overlay').classList.add('active');
+  confirmCb = cb;
+}
+window.confirmYes = () => { document.getElementById('confirm-overlay').classList.remove('active'); confirmCb?.(); confirmCb=null; };
+window.confirmNo  = () => { document.getElementById('confirm-overlay').classList.remove('active'); confirmCb=null; };
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2600);
+}
+
+// ── Session restore ──
+try {
+  const s = sessionStorage.getItem('tapp_session');
+  if (s) { currentUser = JSON.parse(s); showApp(); }
+} catch(e) { sessionStorage.removeItem('tapp_session'); }
+</script>
+</body>
+</html>
